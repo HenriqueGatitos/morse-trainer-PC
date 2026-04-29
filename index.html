@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Morse Pro</title>
+</head>
+<body style="background:black; color:white; text-align:center; font-family:sans-serif;">
+
+<h1>Morse Trainer</h1>
+
+<div>
+  <button onclick="modo='livre'; apagar()">Livre</button>
+  <button onclick="iniciarTreino()">Treinar</button>
+  <button onclick="iniciarFrase()">Frase</button>
+</div>
+
+<h2 id="desafio"></h2>
+<h1>Tradução: <span id="texto"></span></h1>
+<h2>Morse: <span id="morse"></span></h2>
+
+<p>Segure <b>J</b> | Espaço = separar palavras</p>
+<button onclick="apagar()">Apagar</button>
+
+<script>
+let modo = "livre";
+
+let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let oscillator;
+let isPlaying = false;
+
+let pressTime = 0;
+let morseAtual = "";
+let textoFinal = "";
+let ultimoInput = Date.now();
+let desafioAtual = "";
+
+const frases = ["SOS", "HELLO", "MORSE", "CODE", "RADIO", "TESTE"];
+
+const morseDict = {
+  ".-":"A","-...":"B","-.-.":"C","-..":"D",".":"E","..-.":"F",
+  "--.":"G","....":"H","..":"I",".---":"J","-.-":"K",".-..":"L",
+  "--":"M","-.":"N","---":"O",".--.":"P","--.-":"Q",".-.":"R",
+  "...":"S","-":"T","..-":"U","...-":"V",".--":"W","-..-":"X",
+  "-.--":"Y","--..":"Z",
+  "-----":"0",".----":"1","..---":"2","...--":"3","....-":"4",
+  ".....":"5","-....":"6","--...":"7","---..":"8","----.":"9"
+};
+
+function iniciarTreino() {
+  modo = "treinar";
+  apagar();
+
+  let letras = Object.values(morseDict);
+  desafioAtual = letras[Math.floor(Math.random() * letras.length)];
+
+  document.getElementById("desafio").innerText = "Faça em Morse: " + desafioAtual;
+}
+
+function iniciarFrase() {
+  modo = "frase";
+  apagar();
+
+  desafioAtual = frases[Math.floor(Math.random() * frases.length)];
+
+  document.getElementById("desafio").innerText = "Frase: " + desafioAtual;
+}
+
+document.addEventListener("keydown", function(e) {
+
+  if (e.code === "Space") {
+    e.preventDefault();
+    textoFinal += " ";
+    document.getElementById("texto").innerText = textoFinal;
+    return;
+  }
+
+  if (e.key.toLowerCase() === "j" && !isPlaying) {
+    oscillator = audioCtx.createOscillator();
+    oscillator.frequency.setValueAtTime(600, audioCtx.currentTime);
+    oscillator.connect(audioCtx.destination);
+    oscillator.start();
+
+    pressTime = Date.now();
+    isPlaying = true;
+  }
+});
+
+document.addEventListener("keyup", function(e) {
+  if (e.key.toLowerCase() === "j" && isPlaying) {
+    oscillator.stop();
+    isPlaying = false;
+
+    let duration = Date.now() - pressTime;
+    ultimoInput = Date.now();
+
+    if (duration < 200) {
+      morseAtual += ".";
+    } else {
+      morseAtual += "-";
+    }
+
+    document.getElementById("morse").innerText = morseAtual;
+  }
+});
+
+setInterval(() => {
+  let agora = Date.now();
+
+  if (morseAtual !== "" && (agora - ultimoInput > 3000)) {
+    let letra = morseDict[morseAtual] || "?";
+    textoFinal += letra;
+
+    document.getElementById("texto").innerText = textoFinal;
+    document.getElementById("morse").innerText += " / ";
+
+    // TREINO
+    if (modo === "treinar") {
+      if (letra === desafioAtual) {
+        document.getElementById("desafio").innerText = "Acertou! 🎯";
+        setTimeout(iniciarTreino, 1500);
+      } else {
+        document.getElementById("desafio").innerText = "Errou!";
+      }
+    }
+
+    // FRASE (CORRIGIDO)
+    if (modo === "frase") {
+      let resposta = textoFinal.replace(/\s/g, "").toUpperCase();
+      let alvo = desafioAtual.replace(/\s/g, "").toUpperCase();
+
+      if (resposta === alvo) {
+        document.getElementById("desafio").innerText = "Acertou a frase! 🎉";
+        setTimeout(iniciarFrase, 2000);
+      }
+    }
+
+    morseAtual = "";
+  }
+}, 200);
+
+function apagar() {
+  morseAtual = "";
+  textoFinal = "";
+  desafioAtual = "";
+
+  document.getElementById("morse").innerText = "";
+  document.getElementById("texto").innerText = "";
+  document.getElementById("desafio").innerText = "";
+}
+</script>
+
+</body>
+</html>
